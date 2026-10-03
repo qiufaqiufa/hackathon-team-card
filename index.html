@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>组队名片生成器 - Hackathon Team Card Generator</title>
+    
+    <!-- TailwindCSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- html2canvas for PNG export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        /* 自定义动画 */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+        
+        /* 卡片样式 */
+        .card-preview {
+            transition: all 0.3s ease;
+        }
+        
+        /* 深色科技主题 */
+        .theme-dark {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #06b6d4 100%);
+            color: white;
+        }
+        
+        .theme-dark .card-border {
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(59, 130, 246, 0.3);
+        }
+        
+        /* 浅色活力主题 */
+        .theme-light {
+            background: linear-gradient(135deg, #fef3c7 0%, #fbbf24 50%, #f97316 100%);
+            color: #1f2937;
+        }
+        
+        .theme-light .card-border {
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px rgba(251, 191, 36, 0.3);
+        }
+        
+        /* 技能标签样式 */
+        .skill-tag {
+            display: inline-block;
+            padding: 4px 12px;
+            margin: 2px;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(4px);
+        }
+        
+        .theme-light .skill-tag {
+            background: rgba(255, 255, 255, 0.6);
+        }
+        
+        /* 文本自动换行 */
+        .text-wrap {
+            word-wrap: break-word;
+            word-break: break-word;
+            white-space: pre-wrap;
+        }
+        
+        /* 占位提示样式 */
+        .placeholder-text {
+            opacity: 0.6;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-7xl">
+        <!-- 页面标题 -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">🚀 组队名片生成器</h1>
+            <p class="text-gray-600">快速生成你的黑客松组队名片，找到志同道合的队友！</p>
+        </header>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- 左侧：表单输入区 -->
+            <div class="bg-white rounded-lg shadow-lg p-6 fade-in">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                    <span class="mr-2">📝</span>填写信息
+                </h2>
+                
+                <form id="cardForm" class="space-y-5">
+                    <!-- 昵称 -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            昵称 <span class="text-red-500">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="nickname" 
+                            maxlength="20"
+                            placeholder="例如：小明 / CodeMaster"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                        <p class="text-xs text-gray-500 mt-1">最多20个字符</p>
+                    </div>
+                    
+                    <!-- 技能 -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            技能 <span class="text-red-500">*</span>
+                        </label>
+                        <textarea 
+                            id="skills" 
+                            rows="2"
+                            maxlength="100"
+                            placeholder="例如：前端开发、UI设计、后端架构"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        ></textarea>
+                        <p class="text-xs text-gray-500 mt-1">多个技能用逗号分隔，最多100个字符</p>
+                    </div>
+                    
+                    <!-- 期望队友 -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            期望队友
+                        </label>
+                        <textarea 
+                            id="teammates" 
+                            rows="2"
+                            maxlength="100"
+                            placeholder="例如：有产品思维的设计师、熟悉AI的同学"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        ></textarea>
+                        <p class="text-xs text-gray-500 mt-1">最多100个字符</p>
+                    </div>
+                    
+                    <!-- 项目方向 -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            项目方向 <span class="text-red-500">*</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="project" 
+                            maxlength="50"
+                            placeholder="例如：AI教育助手、社区团购小程序"
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                        <p class="text-xs text-gray-500 mt-1">最多50个字符</p>
+                    </div>
+                    
+                    <!-- 自我介绍 -->
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            自我介绍
+                        </label>
+                        <textarea 
+                            id="introduction" 
+                            rows="4"
+                            maxlength="300"
+                            placeholder="简单介绍一下自己，例如：3年全栈开发经验，热爱开源，喜欢挑战新技术..."
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        ></textarea>
+                        <p class="text-xs text-gray-500 mt-1">最多300个字符</p>
+                    </div>
+                    
+                    <!-- 主题切换 -->
+                    <div class="pt-4 border-t border-gray-200">
+                        <label class="block text-sm font-semibold text-gray-700 mb-3">
+                            选择主题
+                        </label>
+                        <div class="flex gap-3">
+                            <button 
+                                type="button" 
+                                id="themeDarkBtn"
+                                class="flex-1 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                            >
+                                🌙 深色科技
+                            </button>
+                            <button 
+                                type="button" 
+                                id="themeLightBtn"
+                                class="flex-1 px-4 py-2 bg-yellow-400 text-gray-800 rounded-lg hover:bg-yellow-300 transition-colors"
+                            >
+                                ☀️ 浅色活力
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- 右侧：卡片预览区 -->
+            <div class="space-y-6 fade-in">
+                <!-- 实时预览卡片 -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                        <span class="mr-2">🎨</span>实时预览
+                    </h2>
+                    
+                    <!-- 卡片容器 -->
+                    <div id="cardContainer" class="card-preview theme-dark rounded-xl p-8 card-border">
+                        <!-- 昵称 -->
+                        <div class="mb-4">
+                            <h3 id="cardNickname" class="text-3xl font-bold placeholder-text">你的昵称</h3>
+                        </div>
+                        
+                        <!-- 项目方向 -->
+                        <div class="mb-6">
+                            <p class="text-sm opacity-80 mb-1">🎯 项目方向</p>
+                            <p id="cardProject" class="text-xl font-semibold placeholder-text">你的项目方向</p>
+                        </div>
+                        
+                        <!-- 技能 -->
+                        <div class="mb-6">
+                            <p class="text-sm opacity-80 mb-2">💡 我的技能</p>
+                            <div id="cardSkills" class="text-wrap">
+                                <span class="placeholder-text">你的技能将显示在这里</span>
+                            </div>
+                        </div>
+                        
+                        <!-- 期望队友 -->
+                        <div class="mb-6">
+                            <p class="text-sm opacity-80 mb-2">🤝 期望队友</p>
+                            <p id="cardTeammates" class="text-wrap placeholder-text">你期望的队友类型</p>
+                        </div>
+                        
+                        <!-- 自我介绍 -->
+                        <div>
+                            <p class="text-sm opacity-80 mb-2">📖 关于我</p>
+                            <p id="cardIntroduction" class="text-wrap text-sm placeholder-text">你的自我介绍</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 操作按钮 -->
+                <div class="bg-white rounded-lg shadow-lg p-6 space-y-3">
+                    <button 
+                        id="exportPngBtn"
+                        class="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold flex items-center justify-center"
+                    >
+                        <span class="mr-2">📸</span>导出 PNG 图片
+                    </button>
+                    
+                    <button 
+                        id="copyTextBtn"
+                        class="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold flex items-center justify-center"
+                    >
+                        <span class="mr-2">📋</span>复制组队文字
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 页脚 -->
+        <footer class="text-center mt-12 text-gray-500 text-sm">
+            <p>💻 Hackathon Team Card Generator | 为黑客松而生</p>
+        </footer>
+    </div>
+    
+    <script>
+        // ==================== 状态管理 ====================
+        let currentTheme = 'dark'; // 当前主题：dark 或 light
+        
+        // ==================== DOM 元素 ====================
+        const form = document.getElementById('cardForm');
+        const nicknameInput = document.getElementById('nickname');
+        const skillsInput = document.getElementById('skills');
+        const teammatesInput = document.getElementById('teammates');
+        const projectInput = document.getElementById('project');
+        const introductionInput = document.getElementById('introduction');
+        
+        const cardNickname = document.getElementById('cardNickname');
+        const cardSkills = document.getElementById('cardSkills');
+        const cardTeammates = document.getElementById('cardTeammates');
+        const cardProject = document.getElementById('cardProject');
+        const cardIntroduction = document.getElementById('cardIntroduction');
+        
+        const cardContainer = document.getElementById('cardContainer');
+        const themeDarkBtn = document.getElementById('themeDarkBtn');
+        const themeLightBtn = document.getElementById('themeLightBtn');
+        
+        const exportPngBtn = document.getElementById('exportPngBtn');
+        const copyTextBtn = document.getElementById('copyTextBtn');
+        
+        // ==================== 实时更新卡片 ====================
+        
+        /**
+         * 更新昵称显示
+         */
+        nicknameInput.addEventListener('input', (e) => {
+            const value = e.target.value.trim();
+            if (value) {
+                cardNickname.textContent = value;
+                cardNickname.classList.remove('placeholder-text');
+            } else {
+                cardNickname.textContent = '你的昵称';
+                cardNickname.classList.add('placeholder-text');
+            }
+        });
+        
+        /**
+         * 更新技能显示（支持多标签）
+         */
+        skillsInput.addEventListener('input', (e) => {
+            const value = e.target.value.trim();
+            if (value) {
+                // 按逗号分割技能，生成标签
+                const skills = value.split(/[,，]/).map(s => s.trim()).filter(s => s);
+                cardSkills.innerHTML = skills.map(skill => 
+                    `<span class="skill-tag">${escapeHtml(skill)}</span>`
+                ).join('');
+                cardSkills.classList.remove('placeholder-text');
+            } else {
+                cardSkills.innerHTML = '<span class="placeholder-text">你的技能将显示在这里</span>';
+                cardSkills.classList.add('placeholder-text');
+            }
+        });
+        
+        /**
+         * 更新期望队友显示
+         */
+        teammatesInput.addEventListener('input', (e) => {
+            const value = e.target.value.trim();
+            if (value) {
+                cardTeammates.textContent = value;
+                cardTeammates.classList.remove('placeholder-text');
+            } else {
+                cardTeammates.textContent = '你期望的队友类型';
+                cardTeammates.classList.add('placeholder-text');
+            }
+        });
+        
+        /**
+         * 更新项目方向显示
+         */
+        projectInput.addEventListener('input', (e) => {
+            const value = e.target.value.trim();
+            if (value) {
+                cardProject.textContent = value;
+                cardProject.classList.remove('placeholder-text');
+            } else {
+                cardProject.textContent = '你的项目方向';
+                cardProject.classList.add('placeholder-text');
+            }
+        });
+        
+        /**
+         * 更新自我介绍显示
+         */
+        introductionInput.addEventListener('input', (e) => {
+            const value = e.target.value.trim();
+            if (value) {
+                cardIntroduction.textContent = value;
+                cardIntroduction.classList.remove('placeholder-text');
+            } else {
+                cardIntroduction.textContent = '你的自我介绍';
+                cardIntroduction.classList.add('placeholder-text');
+            }
+        });
+        
+        // ==================== 主题切换 ====================
+        
+        /**
+         * 切换到深色科技主题
+         */
+        themeDarkBtn.addEventListener('click', () => {
+            currentTheme = 'dark';
+            cardContainer.classList.remove('theme-light');
+            cardContainer.classList.add('theme-dark');
+        });
+        
+        /**
+         * 切换到浅色活力主题
+         */
+        themeLightBtn.addEventListener('click', () => {
+            currentTheme = 'light';
+            cardContainer.classList.remove('theme-dark');
+            cardContainer.classList.add('theme-light');
+        });
+        
+        // ==================== 导出 PNG ====================
+        
+        /**
+         * 导出卡片为 PNG 图片
+         */
+        exportPngBtn.addEventListener('click', async () => {
+            // 检查必填字段
+            if (!nicknameInput.value.trim() || !projectInput.value.trim()) {
+                alert('请至少填写昵称和项目方向！');
+                return;
+            }
+            
+            try {
+                // 显示加载状态
+                exportPngBtn.disabled = true;
+                exportPngBtn.innerHTML = '<span class="mr-2">⏳</span>正在生成...';
+                
+                // 使用 html2canvas 生成图片
+                const canvas = await html2canvas(cardContainer, {
+                    scale: 2, // 提高清晰度
+                    backgroundColor: null,
+                    useCORS: true,
+                    logging: false
+                });
+                
+                // 转换为 PNG 并下载
+                const link = document.createElement('a');
+                link.download = `组队名片_${nicknameInput.value.trim()}_${Date.now()}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                // 恢复按钮状态
+                exportPngBtn.disabled = false;
+                exportPngBtn.innerHTML = '<span class="mr-2">📸</span>导出 PNG 图片';
+                
+                // 成功提示
+                showToast('✅ 图片已下载！');
+            } catch (error) {
+                console.error('导出失败:', error);
+                alert('导出失败，请重试！');
+                exportPngBtn.disabled = false;
+                exportPngBtn.innerHTML = '<span class="mr-2">📸</span>导出 PNG 图片';
+            }
+        });
+        
+        // ==================== 复制文字 ====================
+        
+        /**
+         * 复制组队文字到剪贴板
+         */
+        copyTextBtn.addEventListener('click', async () => {
+            // 检查必填字段
+            if (!nicknameInput.value.trim() || !projectInput.value.trim()) {
+                alert('请至少填写昵称和项目方向！');
+                return;
+            }
+            
+            // 构建文字内容
+            const text = buildCopyText();
+            
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast('✅ 文字已复制到剪贴板！');
+            } catch (error) {
+                console.error('复制失败:', error);
+                // 降级方案：创建临时 textarea
+                fallbackCopy(text);
+            }
+        });
+        
+        /**
+         * 构建要复制的文字内容
+         */
+        function buildCopyText() {
+            const nickname = nicknameInput.value.trim();
+            const skills = skillsInput.value.trim();
+            const teammates = teammatesInput.value.trim();
+            const project = projectInput.value.trim();
+            const introduction = introductionInput.value.trim();
+            
+            let text = `🚀 组队名片\n\n`;
+            text += `👤 昵称：${nickname}\n`;
+            text += `🎯 项目方向：${project}\n`;
+            
+            if (skills) {
+                text += `💡 技能：${skills}\n`;
+            }
+            
+            if (teammates) {
+                text += `🤝 期望队友：${teammates}\n`;
+            }
+            
+            if (introduction) {
+                text += `\n📖 关于我：\n${introduction}\n`;
+            }
+            
+            text += `\n💬 期待与你组队，一起创造精彩！`;
+            
+            return text;
+        }
+        
+        /**
+         * 降级复制方案（兼容旧浏览器）
+         */
+        function fallbackCopy(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            
+            try {
+                document.execCommand('copy');
+                showToast('✅ 文字已复制到剪贴板！');
+            } catch (error) {
+                alert('复制失败，请手动复制！');
+            }
+            
+            document.body.removeChild(textarea);
+        }
+        
+        // ==================== 工具函数 ====================
+        
+        /**
+         * HTML 转义（防止 XSS）
+         */
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        /**
+         * 显示提示消息
+         */
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg z-50 fade-in';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s';
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 300);
+            }, 2000);
+        }
+        
+        // ==================== 初始化 ====================
+        
+        // 页面加载完成后的初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 组队名片生成器已启动');
+        });
+    </script>
+</body>
+</html>
