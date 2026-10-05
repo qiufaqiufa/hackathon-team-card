@@ -76,6 +76,21 @@
             opacity: 0.6;
             font-style: italic;
         }
+        #cardContainer{
+  position:relative;
+}
+#cardContainer::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:rgba(0,0,0,0.3);
+  border-radius:inherit;
+  z-index:0;
+}
+#cardContainer > *{
+  position:relative;
+  z-index:1;
+}
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -123,7 +138,12 @@
                         ></textarea>
                         <p class="text-xs text-gray-500 mt-1">多个技能用逗号分隔，最多100个字符</p>
                     </div>
-                    
+                    <div style="margin-top:16px;">
+						<label class="block text-sm font-semibold text-gray-700 mb-2">上传名片背景图</label>
+						<input type="file" id="bgUpload" accept="image/*">
+						<button id="resetBgBtn" style="margin-left:8px;padding:2px 8px;">恢复默认背景</button>
+						<p class="text-xs text-gray-500 mt-1">推荐图片比例 3:2，图片比例不符会自动居中裁切；不选择图片则使用原版背景</p>
+					</div>
                     <!-- 期望队友 -->
                     <div>
                         <label class="block text-sm font-semibold text-gray-700 mb-2">
@@ -540,6 +560,43 @@
         window.addEventListener('DOMContentLoaded', () => {
             console.log('🚀 组队名片生成器已启动');
         });
+        const bgUpload = document.getElementById('bgUpload');
+const resetBgBtn = document.getElementById('resetBgBtn');
+const cardDom = document.getElementById('cardContainer');
+// 保存页面加载时卡片原始背景
+const originalBgStyle = cardDom.style.backgroundImage;
+
+bgUpload.addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  const img = new Image();
+
+  img.onload = function() {
+    const w = img.width;
+    const h = img.height;
+    const ratio = w / h;
+    const targetRatio = 1.5; //3:2
+    const diff = Math.abs(ratio - targetRatio);
+    if(diff > 0.25){
+      alert(`图片长宽比差距较大！\n图片尺寸：${w} × ${h}\n推荐使用3:2图片，超出部分会裁切`);
+    }
+    cardDom.style.backgroundImage = `url(${img.src})`;
+    cardDom.style.backgroundSize = "cover";
+    cardDom.style.backgroundPosition = "center";
+    cardDom.style.backgroundRepeat = "no-repeat";
+  }
+  reader.onload = function(event){
+    img.src = event.target.result;
+  }
+  reader.readAsDataURL(file);
+})
+
+// 恢复默认背景按钮
+resetBgBtn.addEventListener('click', function(){
+  cardDom.style.backgroundImage = originalBgStyle;
+  bgUpload.value = '';
+})
     </script>
 </body>
 </html>
